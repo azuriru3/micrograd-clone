@@ -23,7 +23,7 @@ print(f'{b.grad:.4f}')   # -18.2120
 
 ## what an autograd engine actually is
 
-When you do `z = x * y`, `Value` doesn't just compute the number — it remembers *how* `z` was computed (from `x` and `y`, via multiplication), so later, once you have some final loss value, you can ask "how much would the loss change if I nudged `x` a tiny bit?" for every value in the whole graph, automatically. That's `backward()` — reverse-mode automatic differentiation, applied one scalar at a time.
+When you do `z = x * y`, `Value` doesn't just compute the number, it also remembers *how* `z` was computed (from `x` and `y`, via multiplication). Later, once you have some final loss value, you can ask "how much would the loss change if I nudged `x` a tiny bit?" for every value in the whole graph, automatically. That's `backward()`, reverse-mode automatic differentiation, applied one scalar at a time.
 
 Once you have that, a neural net is nothing special. It's a chain of `Value` multiplications, additions, and a nonlinearity, and training is: run the graph forward, call `backward()`, nudge every weight a little in the direction that reduces the loss, repeat.
 
@@ -33,16 +33,28 @@ Once you have that, a neural net is nothing special. It's a chain of `Value` mul
 
 ![decision boundary and loss curve](examples/train_toy_result.png)
 
+## tracing / visualization
+
+`micrograd/draw.py` has a `draw_dot()` function that turns any `Value`'s computation graph into a graphviz picture, showing the data and grad at every node. `examples/trace_graph.py` runs it on a single tiny neuron with two inputs:
+
+![computation graph of a single neuron](examples/trace_graph_result.svg)
+
+Staring at this is honestly what made backprop click for me. You can literally see the gradient shrink or grow as it flows backward through each `*`, `+`, and `tanh`, instead of just trusting the math.
+
+This one needs the actual graphviz program installed on your machine (not just the `pip install graphviz` package), since that package is just a thin wrapper that calls the `dot` binary. On Windows that's `winget install Graphviz.Graphviz`, on Mac it's `brew install graphviz`, on most Linux distros it's `apt install graphviz` or your package manager's equivalent.
+
 ## structure
 
 ```
 micrograd/
   engine.py   - the Value class, this is the whole autograd engine
   nn.py       - Neuron, Layer, MLP, built entirely out of Value ops
+  draw.py     - renders a Value's computation graph with graphviz
 tests/
   test_engine.py
 examples/
-  train_toy.py - trains the MLP above and produces the plot
+  train_toy.py   - trains the MLP above and produces the plot
+  trace_graph.py - draws the computation graph of a single neuron
 ```
 
 ## running it
@@ -51,6 +63,7 @@ examples/
 pip install -r requirements.txt
 pytest tests/
 python examples/train_toy.py
+python examples/trace_graph.py
 ```
 
 If you have `torch` installed, `test_engine.py` also runs a test that checks these gradients against PyTorch's autograd on the same computation. It's skipped automatically if torch isn't there.
