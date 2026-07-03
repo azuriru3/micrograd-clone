@@ -21,5 +21,3 @@ env/
 
 .DS_Store
 Thumbs.db
-
-examples/train_toy_result.png
